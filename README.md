@@ -1,48 +1,40 @@
-# deudas-app/README.md
+# Debt calculator app
 
-# Deudas App
+This app allows you to easily manage and keep track of all the debts in an easy and efficient way. This app is supported for Windows and MacOS users. This app is built with python 3.11.
 
-Esta aplicación permite administrar las deudas de los clientes de manera sencilla y eficiente. La interfaz de usuario es intuitiva y está diseñada para funcionar tanto en Windows como en macOS.
+## Project Structure
 
-## Estructura del Proyecto
+The project is organized as follows:
 
-El proyecto está organizado de la siguiente manera:
+- **src/**: Contains the source code of the application.
+  - **main.py**: Entry point of the application.
+  - **database/**: Module for database management.
+  - **models/**: Defines the classes that represent the application's data.
+  - **ui/**: Contains the user interface.
+  - **utils/**: Auxiliary functions and utilities.
 
-- **src/**: Contiene el código fuente de la aplicación.
-  - **main.py**: Punto de entrada de la aplicación.
-  - **database/**: Módulo para la gestión de la base de datos.
-  - **models/**: Define las clases que representan los datos de la aplicación.
-  - **ui/**: Contiene la interfaz de usuario.
-  - **utils/**: Funciones auxiliares y utilidades.
+- **resources/**: Resource files, such as styles.
 
-- **resources/**: Archivos de recursos, como estilos.
-  
-- **tests/**: Pruebas unitarias para asegurar la calidad del código.
+- **tests/**: Unit tests to ensure code quality.
 
-- **requirements.txt**: Lista de dependencias necesarias para el proyecto.
+- **requirements.txt**: All the project dependencies
 
 - **setup.py**: Script de configuración para la instalación del paquete.
 
 ## Instalación
 
-Para instalar las dependencias del proyecto, ejecuta:
+It is recommended that you create a venv before trying to run the code or install anything
 
-```
+To install the project dependencies:
+
+```bash
 pip install -r requirements.txt
 ```
 
-## Uso
+## Usage
 
-Para ejecutar la aplicación, utiliza el siguiente comando:
+To run the application use:
 
-```
+```bash
 python src/main.py
 ```
-
-## Contribuciones
-
-Las contribuciones son bienvenidas. Si deseas contribuir, por favor abre un issue o envía un pull request.
-
-## Licencia
-
-Este proyecto está bajo la Licencia MIT.
