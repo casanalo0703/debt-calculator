@@ -1,0 +1,36 @@
+/* Este archivo contiene los estilos de la interfaz de usuario en formato QSS. */
+
+QMainWindow {
+    background-color: #f0f0f0;
+}
+
+QPushButton {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+}
+
+QPushButton:hover {
+    background-color: #45a049;
+}
+
+QLineEdit {
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 5px;
+}
+
+QLabel {
+    font-weight: bold;
+}
+
+QFormLayout {
+    margin: 20px;
+}
+
+QTableWidget {
+    border: 1px solid #ccc;
+    gridline-color: #ccc;
+}
