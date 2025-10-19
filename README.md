@@ -1,7 +1,7 @@
 # Debt calculator app
 
 <p align="center">
-  <img src="./resources/icons/wallet.png" />
+  <img width="200" height="200" src="./resources/icons/wallet.png" />
 </p>
 
 
