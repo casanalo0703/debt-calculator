@@ -7,7 +7,10 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QWidget,
 )
+from PySide6.QtCore import Qt
+
 from database.db import Database
+from ui.widgets.client_dialog import ClientDialog
 from .client_details import ClientDetailsDialog
 
 
@@ -33,6 +36,9 @@ class ClientListDialog(QDialog):
         self.clients_table.setSelectionBehavior(
             QTableWidget.SelectionBehavior.SelectRows
         )
+        self.clients_table.setSortingEnabled(True)
+        self.clients_table.horizontalHeader().setSectionsClickable(True)
+        self.clients_table.sortItems(1, Qt.SortOrder.AscendingOrder)
 
         edit_button = QPushButton("Editar")
         edit_button.clicked.connect(self.edit_client)
@@ -50,12 +56,19 @@ class ClientListDialog(QDialog):
     def load_clients(self):
         print("Cargando clientes...")
         clients = self.db.get_all_clients()
+        self.clients_table.setSortingEnabled(False)
         self.clients_table.setRowCount(len(clients))
         for i, client in enumerate(clients):
-            self.clients_table.setItem(i, 0, QTableWidgetItem(str(client.id)))
-            self.clients_table.setItem(i, 1, QTableWidgetItem(client.name))
-            self.clients_table.setItem(i, 2, QTableWidgetItem(client.phone))
-            self.clients_table.setItem(i, 3, QTableWidgetItem(client.email))
+            id_item = QTableWidgetItem(str(client.id))
+            id_item.setData(Qt.ItemDataRole.DisplayRole, client.id)
+            name_item = QTableWidgetItem(client.name)
+            phone_item = QTableWidgetItem(client.phone)
+            email_item = QTableWidgetItem(client.email)
+            self.clients_table.setItem(i, 0, id_item)
+            self.clients_table.setItem(i, 1, name_item)
+            self.clients_table.setItem(i, 2, phone_item)
+            self.clients_table.setItem(i, 3, email_item)
+        self.clients_table.setSortingEnabled(True)
 
     def edit_client(self):
         current_row = self.clients_table.currentRow()

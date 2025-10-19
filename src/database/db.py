@@ -12,6 +12,7 @@ class Database:
         self.create_tables()
 
     def create_tables(self) -> None:
+        """Crea las tablas necesarias si no existen"""
         self.cursor.execute(
             """
             CREATE TABLE IF NOT EXISTS clients (
@@ -45,6 +46,7 @@ class Database:
                 debt_id INTEGER,
                 amount REAL NOT NULL,
                 payment_date TEXT NOT NULL,
+                description TEXT,
                 FOREIGN KEY (debt_id) REFERENCES debts (id),
                 FOREIGN KEY (client_id) REFERENCES clients (id)
             )
@@ -210,10 +212,11 @@ class Database:
         try:
             self.cursor.execute(
                 """
-                SELECT p.id, p.client_id, p.amount, p.payment_date, 
-                    p.description, c.name as client_name
+                SELECT p.id, p.debt_id, p.client_id, p.amount, p.payment_date, 
+                    p.description, c.name as client_name, d.ticket_number
                 FROM payments p
                 JOIN clients c ON p.client_id = c.id
+                LEFT JOIN debts d ON p.debt_id = d.id
                 WHERE strftime('%m', p.payment_date) = ? 
                 AND strftime('%Y', p.payment_date) = ?
                 ORDER BY p.payment_date DESC
@@ -223,10 +226,12 @@ class Database:
             return [
                 Payment(
                     id=row[0],
-                    client_id=row[1],
-                    amount=row[2],
-                    date=row[3],
-                    description=row[4],
+                    debt_id=row[1],
+                    client_id=row[2],
+                    amount=row[3],
+                    date=row[4],
+                    description=row[5],
+                    ticket_number=row[6],
                 )
                 for row in self.cursor.fetchall()
             ]
@@ -239,12 +244,12 @@ class Database:
         try:
             self.cursor.execute(
                 """
-                SELECT *
-                FROM debts d
-                WHERE strftime('%m', d.created_at) = ? 
-                AND strftime('%Y', d.created_at) = ?
-                AND d.client_id = ?
-                ORDER BY d.created_at DESC
+                SELECT id, client_id, amount, due_date, description, ticket_number, created_at
+                FROM debts
+                WHERE strftime('%m', created_at) = ? 
+                AND strftime('%Y', created_at) = ?
+                AND client_id = ?
+                ORDER BY created_at DESC
             """,
                 (f"{month:02d}", str(year), client_id),
             )
@@ -269,8 +274,9 @@ class Database:
         try:
             self.cursor.execute(
                 """
-                SELECT *
+                SELECT p.id, p.debt_id, p.client_id, p.amount, p.payment_date, p.description, d.ticket_number
                 FROM payments p
+                    LEFT JOIN debts d ON p.debt_id = d.id
                 WHERE strftime('%m', p.payment_date) = ? 
                 AND strftime('%Y', p.payment_date) = ?
                 AND p.client_id = ?
@@ -281,15 +287,135 @@ class Database:
             return [
                 Payment(
                     id=row[0],
-                    client_id=row[1],
-                    amount=row[2],
-                    date=row[3],
-                    description=row[4],
+                    debt_id=row[1],
+                    client_id=row[2],
+                    amount=row[3],
+                    date=row[4],
+                    description=row[5],
+                    ticket_number=row[6],
                 )
                 for row in self.cursor.fetchall()
             ]
         except sqlite3.Error as e:
             raise Exception(f"Error al obtener pagos: {str(e)}")
 
+    def add_payment(self, payment: Payment) -> None:
+        self.cursor.execute(
+            "INSERT INTO payments (client_id, debt_id, amount, payment_date, description) VALUES (?, ?, ?, ?, ?)",
+            (
+                payment.client_id,
+                payment.debt_id,
+                payment.amount,
+                payment.date,
+                payment.description,
+            ),
+        )
+        self.connection.commit()
+
+    def get_debts_by_client(self, client_id: int) -> list[Debt]:
+        self.cursor.execute(
+            """
+            SELECT id, client_id, amount, due_date, description, ticket_number, created_at
+            FROM debts
+            WHERE client_id = ?
+            ORDER BY created_at DESC
+        """,
+            (client_id,),
+        )
+        debts = self.cursor.fetchall()
+        return [
+            Debt(
+                id=row[0],
+                client_id=row[1],
+                amount=row[2],
+                due_date=row[3],
+                description=row[4],
+                ticket_number=row[5],
+                created_at=row[6],
+            )
+            for row in debts
+        ]
+
+    def get_remaining_debt(self, debt_id: int) -> float:
+        self.cursor.execute(
+            """
+            SELECT amount FROM debts WHERE id = ?
+        """,
+            (debt_id,),
+        )
+        debt = self.cursor.fetchone()
+        if not debt:
+            return 0.0
+
+        total_debt = debt[0]
+
+        self.cursor.execute(
+            """
+            SELECT SUM(amount) FROM payments WHERE debt_id = ?
+        """,
+            (debt_id,),
+        )
+        payments = self.cursor.fetchone()
+        total_payments = payments[0] if payments[0] is not None else 0.0
+
+        return total_debt - total_payments
+
     def close(self) -> None:
         self.connection.close()
+
+    def get_all_debts_by_client(self, client_id: int) -> list[Debt]:
+        try:
+            self.cursor.execute(
+                """
+                SELECT d.id, d.client_id, d.amount, d.due_date, d.created_at, 
+                    d.description, d.ticket_number
+                FROM debts d
+                WHERE d.client_id = ?
+                ORDER BY d.created_at DESC
+            """,
+                (client_id,),
+            )
+            return [
+                Debt(
+                    id=row[0],
+                    client_id=row[1],
+                    amount=row[2],
+                    due_date=row[3],
+                    created_at=row[4],
+                    description=row[5],
+                    ticket_number=row[6],
+                )
+                for row in self.cursor.fetchall()
+            ]
+        except Exception as e:
+            print(f"Error en get_all_debts_by_client: {str(e)}")
+            return []
+
+    def get_all_payments_by_client(self, client_id: int) -> list[Payment]:
+        try:
+            self.cursor.execute(
+                """
+                SELECT p.id, p.client_id, p.debt_id, p.amount, 
+                    p.payment_date, p.description, d.ticket_number
+                FROM payments p
+                LEFT JOIN debts d ON p.debt_id = d.id
+                WHERE p.client_id = ?
+                ORDER BY p.payment_date DESC
+            """,
+                (client_id,),
+            )
+            return [
+                Payment(
+                    id=row[0],
+                    client_id=row[1],
+                    debt_id=row[2],
+                    amount=row[3],
+                    date=row[4],
+                    description=row[5],
+                    ticket_number=row[6],
+                )
+                for row in self.cursor.fetchall()
+            ]
+        except Exception as e:
+            print(f"Error en get_all_payments_by_client: {str(e)}")
+            return []

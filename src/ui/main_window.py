@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (
     QTableWidgetItem,
 )
 from database.db import Database
+from ui.widgets.add_payments import PaymentDialog
 from ui.widgets.client_dialog import ClientDialog
 from ui.widgets.list_clients import ClientListDialog
 from ui.widgets.add_debt import DebtDialog
@@ -128,8 +129,17 @@ class MainWindow(QMainWindow):
                 )
 
     def add_payment(self):
-        # Lógica para registrar pago
-        pass
+        dialog = PaymentDialog(self, self.db)
+        if dialog.exec():
+            try:
+                payment_data = dialog.get_data()
+                self.db.add_payment(payment_data)
+                QMessageBox.information(self, "Éxito", "Pago registrado correctamente")
+                self.load_data()  # Actualizar las tablas
+            except Exception as e:
+                QMessageBox.critical(
+                    self, "Error", f"Error al registrar pago: {str(e)}"
+                )
 
     def show_clients(self):
         dialog = ClientListDialog(self, self.db)
