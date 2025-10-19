@@ -17,11 +17,11 @@ from ui.widgets.add_debt import DebtDialog
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, db_path: str = "deudas.db"):
+    def __init__(self, db: Database):
         super().__init__()
         self.setWindowTitle("Administrador de Deudas")
         self.setGeometry(100, 100, 1000, 800)
-        self.db = Database(db_path)
+        self.db = db
         self.setup_ui()
 
     def setup_ui(self):

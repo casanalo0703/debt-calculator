@@ -7,7 +7,14 @@ BUILD_DIR = build
 APP_PATH = "$(DIST_DIR)/$(APP_NAME).app"
 EXECUTABLE = "$(APP_PATH)/Contents/MacOS/$(APP_NAME)"
 
-all: build sign
+all: release-mac
+
+clean:
+	@echo "🧹 Limpiando directorios anteriores..."
+	@rm -rf $(BUILD_DIR) $(DIST_DIR)
+	@find . -type d -name "__pycache__" -exec rm -r {} +
+	@find . -type f -name "*.pyc" -delete
+	@find . -type f -name "*.pyo" -delete
 
 install-deps:
 	@echo "📦 Instalando dependencias..."
@@ -17,31 +24,15 @@ run-dev:
 	@echo "🚀 Ejecutando en modo desarrollo..."
 	@python src/main.py
 
-build:
+build: clean
 	@echo "🏗️  Construyendo aplicación..."
-	@pyinstaller src/main.py \
-		--name=$(APP_NAME) \
-		--windowed \
-		--icon=resources/icons/wallet.icns \
-		--add-data=resources:resources \
-		--add-data=src:. \
-		--onedir \
-		--clean \
-		--noconsole
-
-sign:
-	@echo "📝 Dando permisos y firmando la aplicación..."
-	@chmod +x $(EXECUTABLE)
-	@codesign --force --deep --sign - $(APP_PATH)
-	@echo "✅ Construcción completada!"
+	@pyinstaller calculadora_de_deudas.spec --clean --noconfirm
 
 run:
 	@echo "🚀 Ejecutando la aplicación..."
 	@open $(APP_PATH)
 
-release-mac:
+release-mac: clean build
 	@echo "🚀 Construyendo release para macOS..."
-	@make clean
-	@make build
 	@cd dist && zip -r "Calculadora_de_Deudas_macOS.zip" "Calculadora de Deudas.app"
 	@echo "✅ Release para macOS completado!"

@@ -1,7 +1,9 @@
 import sys
+import os
 from pathlib import Path
 from PySide6.QtWidgets import QApplication
 from ui.main_window import MainWindow
+from database.db import Database
 
 
 def get_app_data_dir() -> Path:
@@ -17,18 +19,18 @@ def get_app_data_dir() -> Path:
     else:  # Linux y otros
         app_data = Path.home() / ".local" / "share" / "calculadora-deudas"
 
-    # Crear el directorio si no existe
     app_data.mkdir(parents=True, exist_ok=True)
     return app_data
 
 
 def main():
-    # Obtener el directorio de datos
     app_data = get_app_data_dir()
-    db_path = app_data / "deudas.db"
+    db_path = app_data / ".deudas.db"
 
+    # Inicializar aplicación
     app = QApplication(sys.argv)
-    window = MainWindow(str(db_path))
+    db = Database(str(db_path))
+    window = MainWindow(db)
     window.show()
     return app.exec()
 
