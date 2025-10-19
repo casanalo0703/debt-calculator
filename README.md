@@ -1,5 +1,10 @@
 # Debt calculator app
 
+<p align="center">
+  <img src="./resources/icons/wallet.png" />
+</p>
+
+
 This app allows you to easily manage and keep track of all the debts in an easy and efficient way. This app is supported for Windows and MacOS users. This app is built with python 3.11.
 
 ## Project Structure

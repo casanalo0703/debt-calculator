@@ -12,3 +12,13 @@ __pycache__/
 *.vscode/
 .idea/
 *.coverage
+build/
+dist/
+.eggs/
+pip-wheel-metadata/
+htmlcov/
+.tox/
+.coverage.*
+.cache/
+nosetests.xml
+coverage.xml
