@@ -40,9 +40,8 @@ run:
 	@open $(APP_PATH)
 
 release-mac:
-    @echo "🚀 Construyendo release para macOS..."
-    @make clean
-    @make build
-    @make sign
-    @cd dist && zip -r "Calculadora_de_Deudas_macOS.zip" "Calculadora de Deudas.app"
-    @echo "✅ Release para macOS completado!"
+	@echo "🚀 Construyendo release para macOS..."
+	@make clean
+	@make build
+	@cd dist && zip -r "Calculadora_de_Deudas_macOS.zip" "Calculadora de Deudas.app"
+	@echo "✅ Release para macOS completado!"

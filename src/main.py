@@ -1,19 +1,34 @@
 import sys
-import os
+from pathlib import Path
 from PySide6.QtWidgets import QApplication
 from ui.main_window import MainWindow
 
 
-def main():
-    if getattr(sys, "frozen", False):
-        application_path = os.path.dirname(sys.executable)
-    else:
-        application_path = os.path.dirname(os.path.abspath(__file__))
+def get_app_data_dir() -> Path:
+    """
+    Obtiene el directorio de datos de la aplicación según el sistema operativo
+    """
+    if sys.platform == "darwin":
+        app_data = (
+            Path.home() / "Library" / "Application Support" / "Calculadora de Deudas"
+        )
+    elif sys.platform == "win32":
+        app_data = Path(os.getenv("APPDATA")) / "Calculadora de Deudas"
+    else:  # Linux y otros
+        app_data = Path.home() / ".local" / "share" / "calculadora-deudas"
 
-    db_path = os.path.join(application_path, "deudas.db")
+    # Crear el directorio si no existe
+    app_data.mkdir(parents=True, exist_ok=True)
+    return app_data
+
+
+def main():
+    # Obtener el directorio de datos
+    app_data = get_app_data_dir()
+    db_path = app_data / "deudas.db"
 
     app = QApplication(sys.argv)
-    window = MainWindow(db_path)
+    window = MainWindow(str(db_path))
     window.show()
     return app.exec()
 
