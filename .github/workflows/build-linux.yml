@@ -35,7 +35,7 @@ jobs:
           make release-linux
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Calculadora_de_Deudas_Linux
           path: dist/Calculadora_de_Deudas_Linux.tar.gz

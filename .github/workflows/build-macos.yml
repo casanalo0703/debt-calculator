@@ -30,7 +30,7 @@ jobs:
           make release-mac
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Calculadora_de_Deudas_macOS
           path: dist/Calculadora_de_Deudas_macOS.zip
