@@ -1,20 +1,21 @@
 import sqlite3
 
 from models.debt import Debt
+from models.employee import Employee
 from models.payment import Payment
 from models.client import Client
+from models.provider import Provider
 
 
 class Database:
-    def __init__(self, db_name: str = "deudas.db"):
-        self.connection = sqlite3.connect(db_name)
+    def __init__(self, db_path: str = "deudas.db"):
+        self.connection = sqlite3.connect(db_path)
         self.cursor = self.connection.cursor()
         self.create_tables()
 
     def create_tables(self) -> None:
         """Crea las tablas necesarias si no existen"""
-        self.cursor.execute(
-            """
+        self.cursor.execute("""
             CREATE TABLE IF NOT EXISTS clients (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL,
@@ -22,10 +23,8 @@ class Database:
                 email TEXT,
                 created_at TEXT NOT NULL DEFAULT (datetime('now'))
             )
-        """
-        )
-        self.cursor.execute(
-            """
+        """)
+        self.cursor.execute("""
             CREATE TABLE IF NOT EXISTS debts (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 client_id INTEGER,
@@ -36,10 +35,8 @@ class Database:
                 created_at TEXT NOT NULL DEFAULT (datetime('now')),
                 FOREIGN KEY (client_id) REFERENCES clients (id)
             )
-        """
-        )
-        self.cursor.execute(
-            """
+        """)
+        self.cursor.execute("""
             CREATE TABLE IF NOT EXISTS payments (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 client_id INTEGER,
@@ -50,31 +47,45 @@ class Database:
                 FOREIGN KEY (debt_id) REFERENCES debts (id),
                 FOREIGN KEY (client_id) REFERENCES clients (id)
             )
-        """
-        )
+        """)
+        self.cursor.execute("""
+            CREATE TABLE IF NOT EXISTS employees (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL UNIQUE,
+                position TEXT NOT NULL,
+                is_active INTEGER NOT NULL DEFAULT 1,
+                hired_at TEXT NOT NULL DEFAULT (datetime('now')),
+                layoff_at TEXT NOT NULL DEFAULT (datetime('now'))
+            )
+        """)
+        self.cursor.execute("""
+            CREATE TABLE IF NOT EXISTS providers (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                contact_info TEXT NOT NULL,
+                type_of_service TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT (datetime('now'))
+            )
+        """)
         self.connection.commit()
 
     def get_all_debts(self) -> list[tuple[str, float, str, str | None, str | None]]:
-        self.cursor.execute(
-            """
+        self.cursor.execute("""
             SELECT c.name, d.amount, d.due_date, d.description, d.ticket_number
             FROM debts d
             JOIN clients c ON d.client_id = c.id
             ORDER BY d.created_at DESC
-        """
-        )
+        """)
         debts = self.cursor.fetchall()
         return debts
 
     def get_all_payments(self) -> list[tuple[str, float, str, str | None]]:
-        self.cursor.execute(
-            """
+        self.cursor.execute("""
             SELECT c.name, p.amount, p.payment_date
             FROM payments p
             JOIN clients c ON p.client_id = c.id
             ORDER BY p.payment_date DESC
-        """
-        )
+        """)
         payments = self.cursor.fetchall()
         return payments
 
@@ -129,13 +140,11 @@ class Database:
         """
         Obtiene todos los clientes
         """
-        self.cursor.execute(
-            """
+        self.cursor.execute("""
             SELECT id, name, phone, email, created_at
             FROM clients
             ORDER BY id DESC
-        """
-        )
+        """)
         clients = self.cursor.fetchall()
         return [
             Client(
@@ -419,3 +428,120 @@ class Database:
         except Exception as e:
             print(f"Error en get_all_payments_by_client: {str(e)}")
             return []
+
+    def get_all_employees(self) -> list[tuple[int, str, str]]:
+        self.cursor.execute("""
+            SELECT id, name, position
+            FROM employees
+            WHERE is_active = 1
+            ORDER BY id DESC
+        """)
+        return self.cursor.fetchall()
+
+    def add_employee(self, employee: Employee) -> int | None:
+        """
+        Agrega un nuevo empleado a la base de datos
+        Retorna: ID del empleado creado
+        """
+        try:
+            self.cursor.execute(
+                """
+                    INSERT INTO employees (name, position, is_active, hired_at)
+                    VALUES (?, ?, ?, ?)
+                    ON CONFLICT(name) DO UPDATE SET
+                        position=excluded.position,
+                        is_active=excluded.is_active,
+                        hired_at=excluded.hired_at
+                """,
+                (
+                    employee.name,
+                    employee.position,
+                    employee.is_active,
+                    employee.hired_at.isoformat(),
+                ),
+            )
+            self.connection.commit()
+            return self.cursor.lastrowid
+        except sqlite3.Error as e:
+            self.connection.rollback()
+            raise Exception(f"Error al agregar empleado: {str(e)}")
+
+    def remove_employee_by_id(self, employee_id: int) -> None:
+        try:
+            self.cursor.execute(
+                """
+                UPDATE employees
+                SET is_active = 0, layoff_at = datetime('now')
+                WHERE id = ?
+            """,
+                (employee_id,),
+            )
+            self.connection.commit()
+        except sqlite3.Error as e:
+            self.connection.rollback()
+            raise Exception(f"Error al eliminar empleado: {str(e)}")
+
+    def update_employee(self, employee_id: int, employee: Employee) -> None:
+        try:
+            self.cursor.execute(
+                """
+                UPDATE employees
+                SET name = ?, position = ?
+                WHERE id = ?
+            """,
+                (
+                    employee.name,
+                    employee.position.value,
+                    employee_id,
+                ),
+            )
+            self.connection.commit()
+        except sqlite3.Error as e:
+            self.connection.rollback()
+            raise Exception(f"Error al actualizar empleado: {str(e)}")
+
+    def get_all_providers(self) -> list[tuple[int, str, str, str]]:
+        self.cursor.execute("""
+            SELECT id, name, contact_info, type_of_service
+            FROM providers
+            ORDER BY id DESC
+        """)
+        return self.cursor.fetchall()
+
+    def add_provider(self, provider: Provider) -> int | None:
+        """
+        Agrega un nuevo proveedor a la base de datos
+        Retorna: ID del proveedor creado
+        """
+        try:
+            self.cursor.execute(
+                """
+                    INSERT INTO providers (name, contact_info, type_of_service, created_at)
+                    VALUES (?, ?, ?, ?)
+                """,
+                (
+                    provider.name,
+                    provider.contact_info,
+                    provider.type_of_service,
+                    provider.created_at.isoformat(),
+                ),
+            )
+            self.connection.commit()
+            return self.cursor.lastrowid
+        except sqlite3.Error as e:
+            self.connection.rollback()
+            raise Exception(f"Error al agregar proveedor: {str(e)}")
+
+    def remove_provider_by_id(self, provider_id: int) -> None:
+        try:
+            self.cursor.execute(
+                """
+                DELETE FROM providers
+                WHERE id = ?
+            """,
+                (provider_id,),
+            )
+            self.connection.commit()
+        except sqlite3.Error as e:
+            self.connection.rollback()
+            raise Exception(f"Error al eliminar proveedor: {str(e)}")

@@ -6,6 +6,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QHBoxLayout,
     QWidget,
+    QHeaderView,
 )
 from PySide6.QtCore import Qt
 
@@ -32,6 +33,12 @@ class ClientListDialog(QDialog):
         self.clients_table.setColumnCount(4)
         self.clients_table.setHorizontalHeaderLabels(
             ["ID", "Nombre", "Teléfono", "Email"]
+        )
+        self.clients_table.horizontalHeader().setSectionResizeMode(
+            QHeaderView.ResizeMode.Stretch
+        )
+        self.clients_table.verticalHeader().setSectionResizeMode(
+            QHeaderView.ResizeMode.Fixed
         )
         self.clients_table.setSelectionBehavior(
             QTableWidget.SelectionBehavior.SelectRows

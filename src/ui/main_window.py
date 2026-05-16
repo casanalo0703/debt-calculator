@@ -14,6 +14,9 @@ from ui.widgets.add_payments import PaymentDialog
 from ui.widgets.client_dialog import ClientDialog
 from ui.widgets.list_clients import ClientListDialog
 from ui.widgets.add_debt import DebtDialog
+from ui.widgets.providers.manage_providers import ManageProviders
+from ui.widgets.employees.manage_employees import ManageEmployees
+from ui.widgets.calculate_commissions import CalculateComissionsDialog
 
 
 class MainWindow(QMainWindow):
@@ -35,17 +38,30 @@ class MainWindow(QMainWindow):
         buttons_group = QGroupBox("Acciones")
         buttons_layout = QHBoxLayout()
 
-        add_client_btn = QPushButton("Agregar Cliente")
-        add_debt_btn = QPushButton("Agregar Deuda")
-        add_payment_btn = QPushButton("Registrar Pago")
+        # Botones de gestión principales
+        self.add_client_btn = QPushButton("Agregar cliente")
+        self.add_debt_btn = QPushButton("Agregar deuda")
+        self.add_payment_btn = QPushButton("Agregar pago")
+        self.add_provider_btn = QPushButton("Agregar proveedor")
+        self.manage_employee_btn = QPushButton("Gestionar empleados")
+        self.calculate_commissions_btn = QPushButton("Calcular comisiones")
 
-        add_client_btn.clicked.connect(self.add_client)
-        add_debt_btn.clicked.connect(self.add_debt)
-        add_payment_btn.clicked.connect(self.add_payment)
+        # Conexiones de botones existentes
+        self.add_client_btn.clicked.connect(self.add_client)
+        self.add_debt_btn.clicked.connect(self.add_debt)
+        self.add_payment_btn.clicked.connect(self.add_payment)
 
-        buttons_layout.addWidget(add_client_btn)
-        buttons_layout.addWidget(add_debt_btn)
-        buttons_layout.addWidget(add_payment_btn)
+        # Conexiones de nuevos botones (Añadidos/Corregidos)
+        self.add_provider_btn.clicked.connect(self.show_providers)
+        self.manage_employee_btn.clicked.connect(self.manage_employees)
+        self.calculate_commissions_btn.clicked.connect(self.calculate_commissions)
+
+        buttons_layout.addWidget(self.add_client_btn)
+        buttons_layout.addWidget(self.add_debt_btn)
+        buttons_layout.addWidget(self.add_payment_btn)
+        buttons_layout.addWidget(self.add_provider_btn)
+        buttons_layout.addWidget(self.manage_employee_btn)
+        buttons_layout.addWidget(self.calculate_commissions_btn)
         buttons_group.setLayout(buttons_layout)
         main_layout.addWidget(buttons_group)
 
@@ -64,6 +80,7 @@ class MainWindow(QMainWindow):
         debts_group.setLayout(debts_layout)
         tables_layout.addWidget(debts_group)
 
+        # Botón de listado general (se mantiene)
         view_clients_btn = QPushButton("Ver Clientes")
         view_clients_btn.clicked.connect(self.show_clients)
         buttons_layout.addWidget(view_clients_btn)
@@ -143,4 +160,19 @@ class MainWindow(QMainWindow):
 
     def show_clients(self):
         dialog = ClientListDialog(self, self.db)
+        dialog.exec()
+
+    def show_providers(self):
+        # Asumiendo que existe un diálogo para gestionar proveedores
+        dialog = ManageProviders(self.db, self)
+        dialog.exec()
+
+    def manage_employees(self):
+        # Asumiendo que existe un diálogo para gestionar empleados
+        dialog = ManageEmployees(self.db, self)
+        dialog.exec()
+
+    def calculate_commissions(self):
+        # Asumiendo que existe un diálogo para calcular comisiones
+        dialog = CalculateComissionsDialog(self.db, self)
         dialog.exec()

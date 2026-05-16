@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QPushButton,
     QGroupBox,
+    QHeaderView,
 )
 from datetime import datetime
 import calendar
@@ -91,6 +92,12 @@ class ClientDetailsDialog(QDialog):
         self.payments_table.setColumnCount(4)
         self.payments_table.setHorizontalHeaderLabels(
             ["Monto", "Fecha de Pago", "Descripción", "Número de Ticket/Factura"]
+        )
+        self.payments_table.horizontalHeader().setSectionResizeMode(
+            QHeaderView.ResizeMode.Stretch
+        )
+        self.payments_table.verticalHeader().setSectionResizeMode(
+            QHeaderView.ResizeMode.Fixed
         )
         payments_layout.addWidget(self.payments_table)
         payments_group.setLayout(payments_layout)

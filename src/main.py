@@ -10,6 +10,8 @@ def get_app_data_dir() -> Path:
     """
     Obtiene el directorio de datos de la aplicación según el sistema operativo
     """
+    if os.environ.get("ENV") == "dev":
+        return Path.cwd()
     if sys.platform == "darwin":
         app_data = (
             Path.home() / "Library" / "Application Support" / "Calculadora de Deudas"
@@ -25,7 +27,11 @@ def get_app_data_dir() -> Path:
 
 def main():
     app_data = get_app_data_dir()
-    db_path = app_data / ".deudas.db"
+    if os.environ.get("ENV") == "dev":
+        print(f"Usando directorio de datos: {app_data}")
+        db_path = app_data / "deudas.db"
+    else:
+        db_path = app_data / ".deudas.db"
 
     # Inicializar aplicación
     app = QApplication(sys.argv)
