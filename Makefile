@@ -65,7 +65,7 @@ release-windows-7z: build-windows
 
 # ===== Targets para Linux =====
 
-LINUX_APP_NAME = Calculadora de Deudas
+LINUX_APP_NAME = calculadora_de_deudas
 LINUX_DIST = $(DIST_DIR)/$(LINUX_APP_NAME)
 
 build-linux: clean
