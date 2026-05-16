@@ -1,9 +1,13 @@
+# src/main.py
 import sys
 import os
 from pathlib import Path
 from PySide6.QtWidgets import QApplication
 from ui.main_window import MainWindow
 from database.db import Database
+
+# Import new architecture components
+from application.container import ServiceContainer
 
 
 def get_app_data_dir() -> Path:
@@ -28,15 +32,21 @@ def get_app_data_dir() -> Path:
 def main():
     app_data = get_app_data_dir()
     if os.environ.get("ENV") == "dev":
-        print(f"Usando directorio de datos: {app_data}")
+        print(f"Using development database path: {app_data / 'deudas.db'}")
         db_path = app_data / "deudas.db"
     else:
         db_path = app_data / ".deudas.db"
 
-    # Inicializar aplicación
-    app = QApplication(sys.argv)
+    # --- REFACTORING: Initialize Database and Dependency Container first ---
+    print("1. Initializing Database Adapter...")
     db = Database(str(db_path))
-    window = MainWindow(db)
+
+    # 2. Build the core application container (wires up repositories -> services)
+    container = ServiceContainer.build_default(db=db)
+
+    # 3. Pass dependencies to the UI layer
+    print("2. Initializing Main Window with Dependency Injection...")
+    window = MainWindow(container)  # Pass the entire container or key services
     window.show()
     return app.exec()
 
