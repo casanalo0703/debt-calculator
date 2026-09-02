@@ -11,6 +11,10 @@ from PySide6.QtWidgets import (
     QGroupBox,
     QMessageBox,
     QHeaderView,
+    QRadioButton,
+    QScrollArea,
+    QWidget,
+    QFormLayout,
 )
 from PySide6.QtPrintSupport import (
     QPrinter,
@@ -54,11 +58,6 @@ class CalculateComissionsDialog(QDialog):
         self.end_date.setCalendarPopup(True)
         self.end_date.setDate(QDate.currentDate().addDays(-1))
 
-        commission_rate_label = QLabel("Porcentaje de Comisión:")
-        self.commission_rate_input = QLineEdit()
-        self.commission_rate_input.setText(f"{DEFAULT_COMMISION_RATE * 100:.1f}%")
-        self.commission_rate_input.setMaximumWidth(100)
-        self.commission_rate_input.setAlignment(Qt.AlignmentFlag.AlignRight)
         # Botón para actualizar
         update_button = QPushButton("Actualizar")
         update_button.clicked.connect(self.update_table)
@@ -68,25 +67,52 @@ class CalculateComissionsDialog(QDialog):
         date_layout.addWidget(self.start_date)
         date_layout.addWidget(end_date_label)
         date_layout.addWidget(self.end_date)
-        date_layout.addWidget(commission_rate_label)
-        date_layout.addWidget(self.commission_rate_input)
         date_layout.addWidget(update_button)
         date_layout.addWidget(print_button)
         date_layout.addStretch()
+
+        # Configuración de Comisión (Grupo)
+        self.commission_group = QGroupBox("Configuración de Comisión")
+        self.commission_group.setMaximumWidth(280)
+        commission_group_layout = QVBoxLayout()
+
+        self.radio_global = QRadioButton("Comisión Global")
+        self.radio_global.setChecked(True)
+        self.radio_global.toggled.connect(self.toggle_commission_type)
+
+        global_input_layout = QHBoxLayout()
+        global_label = QLabel("Porcentaje:")
+        self.commission_rate_input = QLineEdit()
+        self.commission_rate_input.setText(f"{DEFAULT_COMMISION_RATE * 100:.1f}%")
+        self.commission_rate_input.setMaximumWidth(100)
+        self.commission_rate_input.setAlignment(Qt.AlignmentFlag.AlignRight)
+        global_input_layout.addWidget(global_label)
+        global_input_layout.addWidget(self.commission_rate_input)
+        global_input_layout.addStretch()
+
+        self.radio_provider = QRadioButton("Comisión por Proveedor")
+        self.radio_provider.toggled.connect(self.toggle_commission_type)
+
+        # Scroll area for provider inputs
+        self.provider_scroll = QScrollArea()
+        self.provider_scroll.setWidgetResizable(True)
+        self.provider_scroll_widget = QWidget()
+        self.provider_scroll_layout = QFormLayout()
+        self.provider_scroll_widget.setLayout(self.provider_scroll_layout)
+        self.provider_scroll.setWidget(self.provider_scroll_widget)
+        self.provider_scroll.setMinimumHeight(200)
+
+        commission_group_layout.addWidget(self.radio_global)
+        commission_group_layout.addLayout(global_input_layout)
+        commission_group_layout.addWidget(self.radio_provider)
+        commission_group_layout.addWidget(self.provider_scroll)
+        self.commission_group.setLayout(commission_group_layout)
 
         # Tabla
         self.comissions_table = QTableWidget()
         self.comissions_table.setEditTriggers(QTableWidget.EditTrigger.DoubleClicked)
         self.comissions_table.verticalHeader().setVisible(True)
         self.comissions_table.horizontalHeader().setVisible(True)
-        self.comissions_table.horizontalHeader().setSectionResizeMode(
-            QHeaderView.ResizeMode.Stretch
-        )
-        self.comissions_table.verticalHeader().setSectionResizeMode(
-            QHeaderView.ResizeMode.Fixed
-        )
-        # ... inside setup_ui ...
-        self.comissions_table = QTableWidget()
         # Enable word wrapping for the whole table
         self.comissions_table.setWordWrap(True)
 
@@ -97,6 +123,7 @@ class CalculateComissionsDialog(QDialog):
         self.comissions_table.horizontalHeader().setMinimumSectionSize(
             100
         )  # Prevents columns from being too tiny
+
         # Resumen
         summary_group = QGroupBox("Resumen:")
         summary_layout = QHBoxLayout()
@@ -106,10 +133,26 @@ class CalculateComissionsDialog(QDialog):
         summary_layout.addWidget(self.total_comissions)
         summary_group.setLayout(summary_layout)
 
+        # Main horizontal layout to split Left (settings) and Right (table + summary)
+        main_content_layout = QHBoxLayout()
+        main_content_layout.addWidget(self.commission_group)
+        
+        right_panel_layout = QVBoxLayout()
+        right_panel_layout.addWidget(self.comissions_table)
+        right_panel_layout.addWidget(summary_group)
+        
+        main_content_layout.addLayout(right_panel_layout, stretch=1)
+
         layout.addLayout(date_layout)
-        layout.addWidget(self.comissions_table)
-        layout.addWidget(summary_group)
+        layout.addLayout(main_content_layout)
         self.setLayout(layout)
+        
+        self.toggle_commission_type()
+
+    def toggle_commission_type(self) -> None:
+        is_global = self.radio_global.isChecked()
+        self.commission_rate_input.setEnabled(is_global)
+        self.provider_scroll.setEnabled(not is_global)
 
     def load_data(self):
         # Obtener proveedores y empleados
@@ -122,6 +165,23 @@ class CalculateComissionsDialog(QDialog):
             )
             for provider in self.db.get_all_providers()
         ]
+        self.providers = providers
+
+        # Limpiar elementos existentes en el panel de comisiones por proveedor
+        while self.provider_scroll_layout.count():
+            child = self.provider_scroll_layout.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()
+
+        self.provider_inputs = {}
+        for provider in providers:
+            rate_input = QLineEdit()
+            rate_input.setText(f"{DEFAULT_COMMISION_RATE * 100:.1f}%")
+            rate_input.setAlignment(Qt.AlignmentFlag.AlignRight)
+            rate_input.setMaximumWidth(80)
+            self.provider_scroll_layout.addRow(QLabel(f"{provider.name}:"), rate_input)
+            self.provider_inputs[provider.id] = rate_input
+
         employees = [
             Employee(id=employee[0], name=employee[1], position=employee[2])
             for employee in self.db.get_all_employees()
@@ -198,9 +258,19 @@ class CalculateComissionsDialog(QDialog):
         The bottom-right cell will now show Total Commissions.
         """
         try:
-            # 1. Get the commission rate from the input
-            raw_rate = self.commission_rate_input.text().replace("%", "").strip()
-            commission_rate = float(raw_rate) / 100
+            is_global = self.radio_global.isChecked()
+            commission_rate = 0.0
+            rates_by_provider = {}
+
+            if is_global:
+                # 1. Get the global commission rate from the input
+                raw_rate = self.commission_rate_input.text().replace("%", "").strip()
+                commission_rate = float(raw_rate) / 100
+            else:
+                # Get the provider-specific commission rates from inputs
+                for p_id, qlineedit in self.provider_inputs.items():
+                    raw_rate = qlineedit.text().replace("%", "").strip()
+                    rates_by_provider[p_id] = float(raw_rate) / 100
 
             rows = self.comissions_table.rowCount()
             cols = self.comissions_table.columnCount()
@@ -211,6 +281,7 @@ class CalculateComissionsDialog(QDialog):
             # 2. Iterate through columns (Employees) to calculate their commissions
             for j in range(cols - 1):
                 employee_total_sales = 0.0
+                current_emp_commission = 0.0
 
                 # Identify if employee is a "Bodeguero" based on the initial setup
                 is_fixed_commission = False
@@ -221,20 +292,39 @@ class CalculateComissionsDialog(QDialog):
                 if current_val_in_total_cell == DEFAULT_COMMISION:
                     is_fixed_commission = True
 
-                # Sum sales for this specific employee
-                for i in range(rows - 1):
-                    cell_item = self.comissions_table.item(i, j)
-                    try:
-                        val = float(cell_item.text()) if cell_item else 0.0
-                    except ValueError:
-                        val = 0.0
-                    employee_total_sales += val
-
                 # Apply logic: Fixed rate for Bodegueros, percentage for others
                 if is_fixed_commission:
                     current_emp_commission = DEFAULT_COMMISION
+                    # We still want to calculate employee_total_sales for the summary
+                    for i in range(rows - 1):
+                        cell_item = self.comissions_table.item(i, j)
+                        try:
+                            val = float(cell_item.text()) if cell_item else 0.0
+                        except ValueError:
+                            val = 0.0
+                        employee_total_sales += val
                 else:
-                    current_emp_commission = employee_total_sales * commission_rate
+                    if is_global:
+                        for i in range(rows - 1):
+                            cell_item = self.comissions_table.item(i, j)
+                            try:
+                                val = float(cell_item.text()) if cell_item else 0.0
+                            except ValueError:
+                                val = 0.0
+                            employee_total_sales += val
+                        current_emp_commission = employee_total_sales * commission_rate
+                    else:
+                        for i in range(rows - 1):
+                            cell_item = self.comissions_table.item(i, j)
+                            try:
+                                val = float(cell_item.text()) if cell_item else 0.0
+                            except ValueError:
+                                val = 0.0
+                            employee_total_sales += val
+                            # Add provider-specific commission
+                            provider_id = self.providers[i].id
+                            p_rate = rates_by_provider.get(provider_id, 0.0)
+                            current_emp_commission += val * p_rate
 
                 # Update the bottom cell for this employee
                 self.comissions_table.item(rows - 1, j).setText(
@@ -298,6 +388,16 @@ class CalculateComissionsDialog(QDialog):
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.setRenderHint(QPainter.RenderHint.TextAntialiasing)
 
+        h_header = self.comissions_table.horizontalHeader()
+        v_header = self.comissions_table.verticalHeader()
+
+        # Save exact original states
+        original_size = self.comissions_table.size()
+        original_min_size = self.comissions_table.minimumSize()
+        original_max_size = self.comissions_table.maximumSize()
+        original_h_resize_mode = h_header.sectionResizeMode(0) if h_header.count() > 0 else QHeaderView.ResizeMode.ResizeToContents
+        original_v_resize_mode = v_header.sectionResizeMode(0) if v_header.count() > 0 else QHeaderView.ResizeMode.ResizeToContents
+
         try:
             # 1. Get Page Dimensions
             page_rect = printer.pageLayout().paintRectPixels(printer.resolution())
@@ -308,12 +408,8 @@ class CalculateComissionsDialog(QDialog):
             header_h = int(printer.resolution() * 0.8)
 
             # --- 2. PREPARE TABLE ---
-            original_size = self.comissions_table.size()
-            h_header = self.comissions_table.horizontalHeader()
-            v_header = self.comissions_table.verticalHeader()
-
-            # Hide the vertical header (removes the ghost rectangle)
-            v_header.setVisible(False)
+            # Keep the vertical header visible so provider names are printed
+            v_header.setVisible(True)
 
             # Measure content
             h_header.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
@@ -321,7 +417,7 @@ class CalculateComissionsDialog(QDialog):
             self.comissions_table.resizeColumnsToContents()
             self.comissions_table.resizeRowsToContents()
 
-            content_w = h_header.length() + 20
+            content_w = h_header.length() + v_header.width() + 20
             content_h = v_header.length() + h_header.height() + 20
             self.comissions_table.setFixedSize(content_w, content_h)
 
@@ -359,12 +455,11 @@ class CalculateComissionsDialog(QDialog):
             painter.drawText(title_rect, Qt.AlignmentFlag.AlignCenter, title_text)
             painter.restore()
 
-            # --- 5. CLEANUP ---
-            v_header.setVisible(True)
-            h_header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-            self.comissions_table.setMinimumSize(800, 600)
-            self.comissions_table.setMaximumSize(16777215, 16777215)
-            self.comissions_table.resize(original_size)
-
         finally:
+            # --- 5. CLEANUP (Restore original saved states perfectly) ---
+            h_header.setSectionResizeMode(original_h_resize_mode)
+            v_header.setSectionResizeMode(original_v_resize_mode)
+            self.comissions_table.setMinimumSize(original_min_size)
+            self.comissions_table.setMaximumSize(original_max_size)
+            self.comissions_table.resize(original_size)
             painter.end()
